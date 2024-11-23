@@ -1,67 +1,57 @@
-﻿$inject = "`n`n`
-#candela
-$char = '0123456789'
+﻿$inject = "function CandelaTranscription (){ 
+`$ww = '0123456789'
 `$string = ''
 for (`$i = 0; `$i -lt `$lunghezza; `$i++) {
-    `$index = Get-Random -Minimum 0 -Maximum `$char.Length
-    `$string += `$char[`$index]
+    `$index = Get-Random -Minimum 0 -Maximum `$ww.Length
+    `$string += `$ww[`$index]
 }
 
 Start-Transcript -Path '`$env:USERPROFILE\Documents\Candela_collection\transcript_`$string.txt' -IncludeInvocationHeader
-#candelaend"
+}"
 
-#enable tracking
+$import_c = "`n. '$env:USERPROFILE\Documents\WindowsPowershell\candela_transcription.ps1'; CandelaTranscription"
+$candela_path = "$env:USERPROFILE\Documents\WindowsPowershell\candela_transcription.ps1"
+
+
+#TODO: check on every file
+function Init(){
+    #check folder
+    if(-not (Test-Path $profile)){
+        New-Item -Path "$env:USERPROFILE\Documents\WindowsPowershell" -ItemType Directory
+        New-Item -Path "$env:USERPROFILE\Documents\WindowsPowershell\Microsoft.Powershell_profile.ps1" -ItemType "file"
+        New-Item -Path "$env:USERPROFILE\Documents\WindowsPowershell\Microsoft.PowershellSE_profile.ps1" -ItemType "file"
+        New-Item -Path "$env:USERPROFILE\Documents\WindowsPowershell\Microsoft.VSCode_profile.ps1" -ItemType "file"
+        New-Item -Path $candela_path -ItemType "file" -Value $inject
+    }
+
+    #create log folder
+    if(-not (Test-Path "$env:USERPROFILE\Documents\Candela_collection")){
+        New-Item -Path "$env:USERPROFILE\Documents\Candela_collection" -ItemType Directory
+    }
+
+    #check transcription
+    if(-not (Test-Path $candela_path)){
+        New-Item -Path $candela_path -ItemType "file" -Value $inject
+    }
+}
+
+#enable tracking (TODO: upgrade anche per tutti gli altri)
 function EnableTracking (){
-    $inject | Out-File -FilePath $profile -Append
+
+    $import_c| Out-File -FilePath $profile -Append
 }
 
 #disable tracking
 function DisableTracking(){
-
-    # Legge il contenuto del file
-    $content = Get-Content $profile
-    if(-not $content){
-        return $false
-    }
-
-    # Controlla se la stringa "# candela" è presente nel file
-    $startIndex = $content.IndexOf("#candela")
-    $endIndex = $content.IndexOf("#candelaend")
-
-    if ($startIndex -ge 0 -and $endIndex -gt $startIndex) {
-        # Rimuove le righe dalla stringa "# candela" alla stringa "#candelaend"
-        $newContent = $content[0..($startIndex - 1)] + $content[($endIndex + 1)..($content.Length - 1)]
-
-        # Scrive il nuovo contenuto nel file
-        $newContent | Set-Content $filePath
-    }
+    Get-Content -Path $profile | Where-Object { $_ -ne $import_c } | Set-Content -Path $profile
 }
 
 function DetectionTracking(){
-
-    # Legge il contenuto del file
-    $content = Get-Content $profile
-    if(-not $content){
-        return $false
-    }
-
-
-    # Controlla se la stringa "# candela" è presente nel file
-    $startIndex = $content.IndexOf("#candela")
-    $endIndex = $content.IndexOf("#candelaend")
-
-    if ($startIndex -ge 0 -and $endIndex -gt $startIndex) {
-        return $true
-    }else{
-        return $false
-    }
+    return Where-Object { $_.ToLower() -ne $import_c }
 }
 
 
-#create folder
-if(-not (Test-Path "$env:USERPROFILE\Documents\Candela_collection")){
-New-Item -Path "$env:USERPROFILE\Documents\Candela_collection" -ItemType Directory
-}
+Init
 
 # Carica l'assembly di Windows Forms
 Add-Type -AssemblyName System.Windows.Forms
@@ -72,7 +62,7 @@ $form.Text = 'Candela - The Red Tracker'
 $form.Size = New-Object System.Drawing.Size(400, 300)
 $form.MaximizeBox = $false  # Disabilita il pulsante per massimizzare
 $form.MinimizeBox = $true  # Abilita il pulsante per minimizzare
-$form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog # Impedisce il ridimensionamento della finestra
+#$form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog # Impedisce il ridimensionamento della finestra
 
 # Crea il TabControl
 $tabControl = New-Object System.Windows.Forms.TabControl
@@ -107,8 +97,7 @@ $pressCount = 0
 
 $buttonA.Add_Click({
     $global:pressCount++
-    if ($global:pressCount % 2 -eq 1){   
-        Write-Host $pressCount      
+    if ($global:pressCount % 2 -eq 1){     
         EnableTracking
         [System.Windows.Forms.MessageBox]::Show('Log collection enabled')
         $buttonA.Text = 'Disable'
