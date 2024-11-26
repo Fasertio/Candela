@@ -1,57 +1,25 @@
-﻿$inject = "function CandelaTranscription (){ 
-`$ww = '0123456789'
-`$string = ''
-for (`$i = 0; `$i -lt `$lunghezza; `$i++) {
-    `$index = Get-Random -Minimum 0 -Maximum `$ww.Length
-    `$string += `$ww[`$index]
-}
+﻿$sourceFile = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt"
+$destinationFile = "$env:USERPROFILE\Desktop\history_output.txt"
 
-Start-Transcript -Path '`$env:USERPROFILE\Documents\Candela_collection\transcript_`$string.txt' -IncludeInvocationHeader
-}"
-
-$import_c = "`n. '$env:USERPROFILE\Documents\WindowsPowershell\candela_transcription.ps1'; CandelaTranscription"
-$candela_path = "$env:USERPROFILE\Documents\WindowsPowershell\candela_transcription.ps1"
-
-
-#TODO: check on every file
-function Init(){
-    #check folder
-    if(-not (Test-Path $profile)){
-        New-Item -Path "$env:USERPROFILE\Documents\WindowsPowershell" -ItemType Directory
-        New-Item -Path "$env:USERPROFILE\Documents\WindowsPowershell\Microsoft.Powershell_profile.ps1" -ItemType "file"
-        New-Item -Path "$env:USERPROFILE\Documents\WindowsPowershell\Microsoft.PowershellSE_profile.ps1" -ItemType "file"
-        New-Item -Path "$env:USERPROFILE\Documents\WindowsPowershell\Microsoft.VSCode_profile.ps1" -ItemType "file"
-        New-Item -Path $candela_path -ItemType "file" -Value $inject
-    }
-
-    #create log folder
-    if(-not (Test-Path "$env:USERPROFILE\Documents\Candela_collection")){
-        New-Item -Path "$env:USERPROFILE\Documents\Candela_collection" -ItemType Directory
-    }
-
-    #check transcription
-    if(-not (Test-Path $candela_path)){
-        New-Item -Path $candela_path -ItemType "file" -Value $inject
+#monitora la history di PS
+function Monitor_Powershell(){
+    Get-Content -Path $sourceFile -Wait -Tail 0 | ForEach-Object {
+        # Ottieni il timestamp corrente
+        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        # Crea la stringa con timestamp e riga
+        $lineaConTimestamp = "[$timestamp] $_"    
+        # Stampa a schermo
+        Write-Host $lineaConTimestamp
+        # Scrivi la riga con timestamp nel file di log (in append)
+        $lineaConTimestamp | Out-File -FilePath $destinationFile -Append -Encoding UTF8
     }
 }
 
-#enable tracking (TODO: upgrade anche per tutti gli altri)
-function EnableTracking (){
+function Monitor_CMD(){
 
-    $import_c| Out-File -FilePath $profile -Append
-}
-
-#disable tracking
-function DisableTracking(){
-    Get-Content -Path $profile | Where-Object { $_ -ne $import_c } | Set-Content -Path $profile
-}
-
-function DetectionTracking(){
-    return Where-Object { $_.ToLower() -ne $import_c }
 }
 
 
-Init
 
 # Carica l'assembly di Windows Forms
 Add-Type -AssemblyName System.Windows.Forms
